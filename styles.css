@@ -1,0 +1,15 @@
+/* 假设红框是一个 div 容器 */
+.text-container {
+  display: flex;
+  justify-content: center; /* 水平居中 */
+  align-items: center;    /* 垂直居中 */
+  width: 100%;
+  height: 100%;
+}
+
+/* 文字样式 */
+.text-content {
+  margin: 0;
+  line-height: 1.5;
+  /* 如果是单行文本，也可以设置 line-height 等于容器高度来实现垂直居中 */
+} 
