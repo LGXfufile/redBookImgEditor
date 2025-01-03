@@ -8,6 +8,19 @@
   </head>
   <body>
     <div id="app"></div>
+    <div class="controls">
+      <label>
+        垂直位置调整：
+        <input 
+          type="range" 
+          min="-50" 
+          max="50" 
+          value="0" 
+          id="verticalOffset"
+          onchange="updateTextPosition(this.value)"
+        >
+      </label>
+    </div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
