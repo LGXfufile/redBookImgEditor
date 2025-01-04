@@ -11,7 +11,7 @@
       <!-- 右侧画布区域 -->
       <div class="canvas-panel">
         <div class="canvas-wrapper">
-          <canvas id="canvas" width="800" height="600"></canvas>
+          <canvas id="canvas" width="1242" height="1660"></canvas>
         </div>
         <div class="download-bar">
           <button class="download-btn" @click="downloadImage">
@@ -118,6 +118,7 @@ body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
+  min-height: calc(100vh - 100px);
 }
 
 .canvas-wrapper {
@@ -127,13 +128,16 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 0;
+  overflow: hidden;
 }
 
 canvas {
   max-width: 100%;
   max-height: 100%;
+  object-fit: contain;
   background-color: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  aspect-ratio: 3/4;
 }
 
 .download-bar {
@@ -189,11 +193,30 @@ canvas {
   .editor-panel {
     width: 320px;
   }
+  
+  .canvas-wrapper {
+    padding: 12px;
+  }
+  
+  canvas {
+    max-height: calc(100vh - 160px);
+  }
 }
 
 /* 防止 Vue DevTools 影响布局 */
 .__vuedevtools_frame__ {
   position: fixed !important;
   z-index: 9999999 !important;
+}
+
+/* 添加响应式布局支持 */
+@media (max-width: 1280px) {
+  .editor-panel {
+    width: 320px;
+  }
+  
+  .canvas-wrapper {
+    padding: 12px;
+  }
 }
 </style>

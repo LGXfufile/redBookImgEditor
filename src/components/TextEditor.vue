@@ -8,7 +8,7 @@
           <textarea 
             v-model="currentText"
             placeholder="请输入文字"
-            @input="drawText"
+            @input="handleTextInput"
           ></textarea>
           <div class="text-actions">
             <button class="btn primary" @click="addTextBlock">添加文本块</button>
@@ -38,10 +38,17 @@
 
           <div class="control-item">
             <label>字体：</label>
-            <select v-model="fontFamily" @change="drawText" class="select-style">
+            <select v-model="fontFamily" @change="handleFontChange" class="select-style">
               <option value="微软雅黑">微软雅黑</option>
-              <option value="SimHei">黑体</option>
-              <option value="SimSun">宋体</option>
+              <option value="宋体">宋体</option>
+              <option value="黑体">黑体</option>
+              <option value="楷体">楷体</option>
+              <option value="仿宋">仿宋</option>
+              <option value="华文行楷">行楷</option>
+              <option value="华文隶书">隶书</option>
+              <option value="方正舒体">舒体</option>
+              <option value="方正姚体">姚体</option>
+              <option value="华文新魏">新魏</option>
             </select>
           </div>
 
@@ -139,6 +146,38 @@
           </div>
         </div>
       </div>
+
+      <!-- 文本块列表 -->
+      <div class="section">
+        <h3>文本块列表</h3>
+        <div class="text-blocks-list">
+          <div 
+            v-for="(block, index) in textBlocks" 
+            :key="index"
+            class="text-block-item"
+            :class="{ active: selectedBlockIndex === index }"
+            @click="selectBlock(index)"
+          >
+            <span class="block-preview">{{ block.text || '文本块' + (index + 1) }}</span>
+          </div>
+        </div>
+        <div class="text-actions">
+          <button 
+            class="btn primary" 
+            @click="addTextBlock"
+            :disabled="textBlocks.length >= maxTextBlocks"
+          >
+            添加文本块
+          </button>
+          <button 
+            class="btn delete" 
+            @click="deleteText"
+            :disabled="selectedBlockIndex === -1 && !currentText"
+          >
+            删除
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -147,7 +186,7 @@
 export default {
   data() {
     return {
-      currentText: '',
+      currentText: '测试文字',
       verticalOffset: 0,
       canvas: null,
       ctx: null,
@@ -172,6 +211,21 @@ export default {
         start: '#ffffff',
         end: '#f0f0f0'
       },
+      fontMap: {
+        '微软雅黑': 'Microsoft YaHei',
+        '宋体': 'SimSun',
+        '黑体': 'SimHei',
+        '楷体': 'KaiTi',
+        '仿宋': 'FangSong',
+        '华文行楷': 'STXingkai',
+        '华文隶书': 'STLiti',
+        '方正舒体': 'FZShuTi',
+        '方正姚体': 'FZYaoti',
+        '华文新魏': 'STXinwei'
+      },
+      textBlocks: [],
+      maxTextBlocks: 3,
+      selectedBlockIndex: -1
     }
   },
   mounted() {
@@ -182,36 +236,30 @@ export default {
   methods: {
     initCanvas() {
       if (!this.canvas || !this.ctx) return;
-      this.ctx.textAlign = 'center';
+      
+      this.ctx.fillStyle = '#ffffff';
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      
+      this.ctx.textAlign = this.textAlign;
       this.ctx.textBaseline = 'middle';
-      this.drawText();
+      
+      this.$nextTick(() => {
+        this.drawText();
+      });
     },
     drawText() {
       if (!this.canvas || !this.ctx) return;
       
-      // 完全清除画布
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       
-      // 如果是渐变背景，重新绘制背景
-      if (this.backgroundType === 'gradient') {
-        const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-        gradient.addColorStop(0, this.gradientColors.start);
-        gradient.addColorStop(1, this.gradientColors.end);
-        this.ctx.fillStyle = gradient;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      } else {
-        // 纯色背景
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      }
+      this.drawBackground();
       
-      // 设置文字样式
-      this.ctx.font = `${this.fontSize}px ${this.fontFamily}`;
+      const fontFamilyName = this.fontMap[this.fontFamily] || this.fontFamily;
+      this.ctx.font = `${this.fontSize}px "${fontFamilyName}"`;
       this.ctx.fillStyle = this.textColor;
       this.ctx.textAlign = this.textAlign;
       this.ctx.textBaseline = 'middle';
       
-      // 计算文字位置
       let x;
       switch(this.textAlign) {
         case 'left':
@@ -226,8 +274,20 @@ export default {
       
       const y = this.canvas.height / 2 + parseInt(this.verticalOffset);
       
-      // 绘制文本
-      this.ctx.fillText(this.currentText || '测试文字', x, y);
+      if (this.selectedBlockIndex !== -1) {
+        const block = this.textBlocks[this.selectedBlockIndex];
+        this.ctx.fillText(block.text || '测试文字', x, y);
+      } else {
+        this.ctx.fillText(this.currentText || '测试文字', x, y);
+      }
+      
+      if (this.textBlocks.length > 0) {
+        this.textBlocks.forEach((block, index) => {
+          if (index !== this.selectedBlockIndex) {
+            this.drawSingleBlock(block, index);
+          }
+        });
+      }
     },
     handleVerticalOffsetChange(event) {
       this.verticalOffset = parseInt(event.target.value);
@@ -257,21 +317,41 @@ export default {
       this.ctx.fillText(this.currentText || '测试文字', x, y);
     },
     addTextBlock() {
-      // 添加新文本块的逻辑
+      if (this.textBlocks.length >= this.maxTextBlocks) {
+        alert('最多只能添加3个文本块');
+        return;
+      }
+      
+      const newBlock = {
+        text: this.currentText || '新文本块',
+        fontSize: this.fontSize,
+        fontFamily: this.fontFamily,
+        textColor: this.textColor,
+        textAlign: this.textAlign,
+        verticalOffset: this.verticalOffset
+      };
+      
+      this.textBlocks.push(newBlock);
+      this.selectedBlockIndex = this.textBlocks.length - 1;
       this.currentText = '';
-      this.drawText();
+      this.drawAllBlocks();
     },
     deleteText() {
-      this.currentText = '';
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      if (this.selectedBlockIndex !== -1) {
+        this.textBlocks.splice(this.selectedBlockIndex, 1);
+        this.selectedBlockIndex = -1;
+        this.currentText = '';
+        this.drawAllBlocks();
+      } else {
+        this.currentText = '';
+        this.drawText();
+      }
     },
     selectTemplate(templateName) {
       this.currentTemplate = templateName;
-      // 应用模板样式
       this.applyTemplateStyle(templateName);
     },
     applyTemplateStyle(templateName) {
-      // 根据模板名称应用相应的样式
       switch(templateName) {
         case 'simple':
           this.fontSize = 32;
@@ -291,40 +371,103 @@ export default {
     updateBackground() {
       if (!this.canvas || !this.ctx) return;
       
-      // 清除画布
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       
       if (this.backgroundType === 'gradient') {
-        // 创建渐变
         const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
         gradient.addColorStop(0, this.gradientColors.start);
         gradient.addColorStop(1, this.gradientColors.end);
         
-        // 填充渐变背景
         this.ctx.fillStyle = gradient;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
       } else {
-        // 纯色背景
         this.ctx.fillStyle = '#ffffff';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
       }
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
       
-      // 重新绘制文本
       this.drawText();
     },
     applyFilter() {
-      // 应用滤镜效果
       this.drawText();
     },
     handleFontSizeChange(event) {
       this.fontSize = parseInt(event.target.value);
-      this.drawText(); // 重新绘制整个画布
+      this.drawText();
+    },
+    handleFontChange(event) {
+      const selectedFont = event.target.value;
+      this.fontFamily = selectedFont;
+      
+      document.fonts.ready.then(() => {
+        this.drawText();
+      });
+    },
+    selectBlock(index) {
+      this.selectedBlockIndex = index;
+      const block = this.textBlocks[index];
+      this.currentText = block.text;
+      this.fontSize = block.fontSize;
+      this.fontFamily = block.fontFamily;
+      this.textColor = block.textColor;
+      this.textAlign = block.textAlign;
+      this.verticalOffset = block.verticalOffset;
+    },
+    drawAllBlocks() {
+      if (!this.canvas || !this.ctx) return;
+      
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      
+      this.drawBackground();
+      
+      this.textBlocks.forEach((block, index) => {
+        this.drawSingleBlock(block, index);
+      });
+    },
+    drawSingleBlock(block, index) {
+      const fontFamilyName = this.fontMap[block.fontFamily] || block.fontFamily;
+      this.ctx.font = `${block.fontSize}px "${fontFamilyName}"`;
+      this.ctx.fillStyle = block.textColor;
+      this.ctx.textAlign = block.textAlign;
+      this.ctx.textBaseline = 'middle';
+      
+      let x;
+      switch(block.textAlign) {
+        case 'left':
+          x = 50;
+          break;
+        case 'right':
+          x = this.canvas.width - 50;
+          break;
+        default:
+          x = this.canvas.width / 2;
+      }
+      
+      const y = this.canvas.height / 2 + parseInt(block.verticalOffset);
+      this.ctx.fillText(block.text, x, y);
+    },
+    drawBackground() {
+      if (this.backgroundType === 'gradient') {
+        const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+        gradient.addColorStop(0, this.gradientColors.start);
+        gradient.addColorStop(1, this.gradientColors.end);
+        this.ctx.fillStyle = gradient;
+      } else {
+        this.ctx.fillStyle = '#ffffff';
+      }
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    },
+    handleTextInput() {
+      this.drawText();
     }
   },
   watch: {
     backgroundType: {
       handler(newValue) {
         this.updateBackground();
+      }
+    },
+    currentText: {
+      handler(newValue) {
+        this.drawText();
       }
     }
   }
@@ -333,7 +476,7 @@ export default {
 
 <style scoped>
 .text-editor {
-  height: 100%; /* 填充父容器高度 */
+  height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -442,6 +585,18 @@ textarea {
   border: 1px solid #e4e7ed;
   border-radius: 6px;
   font-size: 14px;
+  cursor: pointer;
+  background-color: white;
+}
+
+.select-style:hover {
+  border-color: #c0c4cc;
+}
+
+.select-style:focus {
+  border-color: #409eff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
 .slider-container {
@@ -556,5 +711,70 @@ input:focus {
 .gradient-colors .color-picker {
   width: 60px;
   height: 28px;
+}
+
+@font-face {
+  font-family: 'STXingkai';
+  src: local('STXingkai');
+}
+
+@font-face {
+  font-family: 'STLiti';
+  src: local('STLiti');
+}
+
+@font-face {
+  font-family: 'FZShuTi';
+  src: local('FZShuTi');
+}
+
+@font-face {
+  font-family: 'FZYaoti';
+  src: local('FZYaoti');
+}
+
+@font-face {
+  font-family: 'STXinwei';
+  src: local('STXinwei');
+}
+
+.text-blocks-list {
+  margin-bottom: 12px;
+}
+
+.text-block-item {
+  padding: 8px 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+}
+
+.text-block-item:hover {
+  border-color: #409eff;
+}
+
+.text-block-item.active {
+  border-color: #409eff;
+  background: #ecf5ff;
+}
+
+.block-preview {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+  transform: none;
 }
 </style> 
