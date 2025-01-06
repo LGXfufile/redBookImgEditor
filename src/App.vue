@@ -11,7 +11,9 @@
       <!-- 右侧画布区域 -->
       <div class="canvas-panel">
         <div class="canvas-wrapper">
-          <canvas id="canvas" width="1242" height="1660"></canvas>
+          <div class="canvas-border">
+            <canvas id="canvas" width="1242" height="1660"></canvas>
+          </div>
         </div>
         <div class="download-bar">
           <button class="download-btn" @click="downloadImage">
@@ -129,15 +131,31 @@ body {
   justify-content: center;
   min-height: 0;
   overflow: hidden;
+  background-color: #f5f5f5;
+}
+
+.canvas-border {
+  padding: 12px;
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  position: relative;
+  width: min(100%, calc((100vh - 180px) * 0.75));
+  aspect-ratio: 3/4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 canvas {
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  background-color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  aspect-ratio: 3/4;
+  display: block;
+  border: 1px solid #dcdfe6;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .download-bar {
@@ -201,6 +219,10 @@ canvas {
   canvas {
     max-height: calc(100vh - 160px);
   }
+  
+  .canvas-border {
+    padding: 8px;
+  }
 }
 
 /* 防止 Vue DevTools 影响布局 */
@@ -217,6 +239,21 @@ canvas {
   
   .canvas-wrapper {
     padding: 12px;
+  }
+}
+
+/* 适配小屏幕 */
+@media (max-height: 768px) {
+  .canvas-border {
+    width: min(100%, calc((100vh - 140px) * 0.75));
+  }
+}
+
+/* 适配宽屏 */
+@media (min-width: 1440px) {
+  .canvas-panel {
+    max-width: calc(100vh * 0.75);
+    margin: 0 auto;
   }
 }
 </style>

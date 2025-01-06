@@ -70,6 +70,20 @@
             <label>文字颜色：</label>
             <input type="color" v-model="textColor" @input="drawText" class="color-picker">
           </div>
+
+          <div class="control-item">
+            <label>字体样式：</label>
+            <div class="style-buttons">
+              <button 
+                class="btn style-btn"
+                :class="{ active: isBold }"
+                @click="toggleBold"
+                title="加粗"
+              >
+                B
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -225,7 +239,8 @@ export default {
       },
       textBlocks: [],
       maxTextBlocks: 3,
-      selectedBlockIndex: -1
+      selectedBlockIndex: -1,
+      isBold: false
     }
   },
   mounted() {
@@ -255,7 +270,8 @@ export default {
       this.drawBackground();
       
       const fontFamilyName = this.fontMap[this.fontFamily] || this.fontFamily;
-      this.ctx.font = `${this.fontSize}px "${fontFamilyName}"`;
+      const fontWeight = this.isBold ? 'bold' : 'normal';
+      this.ctx.font = `${fontWeight} ${this.fontSize}px "${fontFamilyName}"`;
       this.ctx.fillStyle = this.textColor;
       this.ctx.textAlign = this.textAlign;
       this.ctx.textBaseline = 'middle';
@@ -328,7 +344,8 @@ export default {
         fontFamily: this.fontFamily,
         textColor: this.textColor,
         textAlign: this.textAlign,
-        verticalOffset: this.verticalOffset
+        verticalOffset: this.verticalOffset,
+        isBold: this.isBold
       };
       
       this.textBlocks.push(newBlock);
@@ -410,6 +427,7 @@ export default {
       this.textColor = block.textColor;
       this.textAlign = block.textAlign;
       this.verticalOffset = block.verticalOffset;
+      this.isBold = block.isBold || false;
     },
     drawAllBlocks() {
       if (!this.canvas || !this.ctx) return;
@@ -456,6 +474,10 @@ export default {
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     },
     handleTextInput() {
+      this.drawText();
+    },
+    toggleBold() {
+      this.isBold = !this.isBold;
       this.drawText();
     }
   },
@@ -776,5 +798,35 @@ input:focus {
 
 .btn:disabled:hover {
   transform: none;
+}
+
+.style-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.style-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.style-btn.active {
+  background: #409eff;
+  color: white;
+  border-color: #409eff;
+}
+
+.style-btn:hover {
+  background: #f5f7fa;
+}
+
+.style-btn.active:hover {
+  background: #66b1ff;
 }
 </style> 
